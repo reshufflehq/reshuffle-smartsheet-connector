@@ -3,6 +3,23 @@ import { BaseConnector, Reshuffle } from 'reshuffle-base-connector'
 
 type Options = Record<string, any>
 
+function validateId(id: any) {
+  if (typeof id === 'number' && 0 < id) {
+    return
+  }
+  if (typeof id === 'string' && 0 < id.length) {
+    return
+  }
+  throw new Error(`Invalid sheet id: ${id}`)
+}
+
+function validateSheetName(name: any) {
+  if (typeof name === 'string' && 0 < name.length) {
+    return
+  }
+  throw new Error(`Invalid sheet name: ${name}`)
+}
+
 interface SimpleColumn {
   id: string
   title: string
@@ -160,23 +177,6 @@ export class SmartsheetConnector extends BaseConnector {
     this.opts = { queryParameters: { includeAll: true } }
   }
 
-  private validateId(id: any) {
-    if (typeof id === 'number' && 0 < id) {
-      return
-    }
-    if (typeof id === 'string' && 0 < id.length) {
-      return
-    }
-    throw new Error(`Invalid sheet id: ${id}`)
-  }
-
-  private validateSheetName(name: any) {
-    if (typeof name === 'string' && 0 < name.length) {
-      return
-    }
-    throw new Error(`Invalid sheet name: ${name}`)
-  }
-
   private createSimpleSheet(sheet: any) {
     const columns = sheet.columns.map((c: any) => ({
       id: c.id,
@@ -198,8 +198,8 @@ export class SmartsheetConnector extends BaseConnector {
   // Actions ////////////////////////////////////////////////////////
 
   public async deleteRow(sheetId: any, rowId: any) {
-    this.validateId(sheetId)
-    this.validateId(rowId)
+    validateId(sheetId)
+    validateId(rowId)
     const res = await this.client.sheets.deleteRow({
       sheetId,
       rowId,
@@ -212,7 +212,7 @@ export class SmartsheetConnector extends BaseConnector {
   }
 
   public async getSheetById(sheetId: any) {
-    this.validateId(sheetId)
+    validateId(sheetId)
     const sheet = await this.client.sheets.getSheet(
       { id: sheetId, ...this.opts }
     )
@@ -220,7 +220,7 @@ export class SmartsheetConnector extends BaseConnector {
   }
 
   public async getSheetIdByName(name: string) {
-    this.validateSheetName(name)
+    validateSheetName(name)
     const list = await this.client.sheets.listSheets(this.opts)
     const desc = list.data.find((d: any) => d.name === name)
     if (!desc) {
@@ -230,7 +230,7 @@ export class SmartsheetConnector extends BaseConnector {
   }
 
   public async getSheetByName(name: string) {
-    this.validateSheetName(name)
+    validateSheetName(name)
     const id = await this.getSheetIdByName(name)
     return this.getSheetById(id)
   }
@@ -248,7 +248,7 @@ export class SmartsheetConnector extends BaseConnector {
     if (typeof columnIdOrIndex === 'number' && columnIdOrIndex < 1024) {
       index = columnIdOrIndex
     } else {
-      this.validateId(columnIdOrIndex)
+      validateId(columnIdOrIndex)
       index = row.cells.findIndex(
         (cell: any) => cell.columnId === columnIdOrIndex
       )
@@ -281,20 +281,20 @@ export class SmartsheetConnector extends BaseConnector {
   }
 
   public async getSimpleSheetById(sheetId: any) {
-    this.validateId(sheetId)
+    validateId(sheetId)
     const sheet = await this.getSheetById(sheetId)
     return this.createSimpleSheet(sheet)
   }
 
   public async getSimpleSheetByName(name: string) {
-    this.validateSheetName(name)
+    validateSheetName(name)
     const sheet = await this.getSheetByName(name)
     return this.createSimpleSheet(sheet)
   }
 
   public async getRow(sheetId: any, rowId: any) {
-    this.validateId(sheetId)
-    this.validateId(rowId)
+    validateId(sheetId)
+    validateId(rowId)
     return this.client.sheets.getRow({ sheetId, rowId, ...this.opts })
   }
 
@@ -309,7 +309,7 @@ export class SmartsheetConnector extends BaseConnector {
   }
 
   public async update(sheetId: any, rows: any[]) {
-    this.validateId(sheetId)
+    validateId(sheetId)
     if (!Array.isArray(rows)) {
       throw new Error(`Invalid rows: ${rows}`)
     }
