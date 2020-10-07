@@ -8,7 +8,17 @@ All actions throw in case of an error.
 
 _Actions_:
 
+[addRows](#addRows) Add rows to a sheet
+
+[addRowToBottom](#addRowToBottom) Add one row at the bottom of a sheet
+
+[addRowToTop](#addRowToTop) Add one row at the top of a sheet
+
+[createSheet](#createSheet) Create a new sheet
+
 [deleteRow](#deleteRow) Delete one row
+
+[findOrCreateSheet](#findOrCreateSheet) Find or create a sheet
 
 [getImage](#getImage) Get image from a sheet cell
 
@@ -45,6 +55,119 @@ const smartsheetConnector = new SmaetsheetConnector(app, {
 
 ## Action Details
 
+### <a name="addRows"></a>Add Rows action
+
+_Definition:_
+
+```ts
+(
+  sheetId: number | string,
+  rows: object,
+) => void
+```
+
+_Usage:_
+
+```js
+await smartsheetConnector.addRows(4583173393803140, [
+  {
+    toTop: true,
+    cells: [
+      {
+        columnId: 7960873114331012,
+        value: true,
+      },
+      {
+        columnId: 642523719853956,
+        value: 'New status',
+        strict: false,
+      },
+    ],
+  },
+  {
+    toBottom: true,
+    cells: [
+      {
+        columnId: 7960873114331012,
+        value: true,
+      },
+      {
+        columnId: 642523719853956,
+        value: 'New status',
+        strict: false,
+      },
+    ],
+  },
+])
+```
+
+Add rows to a sheet.
+
+### <a name="addRowToBottom"></a>Add Row To Bottom action
+
+_Definition:_
+
+```ts
+(
+  sheetId: number | string,
+  cells: object[],
+) => void
+```
+
+_Usage:_
+
+```js
+await smartsheetConnector.addRowToBottom(4583173393803140, {
+  { columnId: 7960873114331012, value: true },
+  { columnId: 642523719853956, value: 'New status' }
+})
+```
+
+Add one row after the last row of a sheet.
+
+### <a name="addRowToTop"></a>Add Row To Top action
+
+_Definition:_
+
+```ts
+(
+  sheetId: number | string,
+  cells: object[],
+) => void
+```
+
+_Usage:_
+
+```js
+await smartsheetConnector.addRowToTop(4583173393803140, {
+  { columnId: 7960873114331012, value: true },
+  { columnId: 642523719853956, value: 'New status' }
+})
+```
+
+Add one row before the first row of a sheet.
+
+### <a name="createSheet"></a>Create Sheet action
+
+_Definition:_
+
+```ts
+(
+  name: string,
+  columns: object[]
+) => object
+```
+
+_Usage:_
+
+```js
+await smartsheetConnector.createSheet('My Sheet', [
+  { title: 'Name', type: 'TEXT_NUMBER', primary: true },
+  { title: 'City', type: 'TEXT_NUMBER' },
+])
+```
+Create a new sheet.
+
 ### <a name="deleteRow"></a>Delete Row action
 
 _Definition:_
@@ -62,6 +185,30 @@ _Usage:_
 await smartsheetConnector.deleteRow(4583173393803140, 1234567890123456)
 ```
 Delete a single row from the specified sheet.
+
+### <a name="findOrCreateSheet"></a>Find Or Create Sheet action
+
+_Definition:_
+
+```ts
+(
+  sheetId: number | string,
+  rowId: number | string,
+) => { created: boolean, sheetId: number, columns: object[] }
+```
+
+_Usage:_
+
+```js
+await smartsheetConnector.findOrCreateSheet('My Sheet', [
+  { title: 'Name', type: 'TEXT_NUMBER', primary: true },
+  { title: 'City', type: 'TEXT_NUMBER' },
+])
+```
+
+This action offers the same interface as [createSheet](#createSheet) above,
+but checks first whether a sheet with the specified `name` exists. If so,
+that sheet is returned. Otherwise, a new one is created.
 
 ### <a name="getImage"></a>Get Image action
 

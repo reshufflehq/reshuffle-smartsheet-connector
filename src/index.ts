@@ -197,6 +197,40 @@ export class SmartsheetConnector extends BaseConnector {
 
   // Actions ////////////////////////////////////////////////////////
 
+  public async addRows(sheetId: any, rows: any[]) {
+    validateId(sheetId)
+    const res = await this.client.sheets.addRows({
+      sheetId,
+      body: rows,
+      ...this.opts,
+    })
+    if (res.resultCode !== 0) {
+      throw new Error(`Error adding rows to sheet ${sheetId}: ${
+        res.resultCode} ${res.message}`)
+    }
+  }
+
+  public async addRowToBottom(sheetId: any, cells: any[]) {
+    await this.addRows(sheetId, [{ toBottom: true, cells }])
+  }
+
+  public async addRowToTop(sheetId: any, cells: any[]) {
+    await this.addRows(sheetId, [{ toTop: true, cells }])
+  }
+
+  public async createSheet(name: string, columns: any[]) {
+    validateSheetName(name)
+    const res = await this.client.sheets.createSheet({
+      body: { name, columns },
+      ...this.opts,
+    })
+    if (res.resultCode !== 0) {
+      throw new Error(`Error creating sheet ${name}: ${
+        res.resultCode} ${res.message}`)
+    }
+    return res.result
+  }
+
   public async deleteRow(sheetId: any, rowId: any) {
     validateId(sheetId)
     validateId(rowId)
@@ -208,6 +242,16 @@ export class SmartsheetConnector extends BaseConnector {
     if (res.resultCode !== 0) {
       throw new Error(`Error deleting row ${rowId} in sheet ${sheetId}: ${
         res.resultCode} ${res.message}`)
+    }
+  }
+
+  public async findOrCreateSheet(name: string, columns: any[]) {
+    try {
+      const sheet = await this.getSheetByName(name)
+      return { created: false, sheetId: sheet.id, columns: sheet.columns }
+    } catch {
+      const sheet = await this.createSheet(name, columns)
+      return { created: true, sheetId: sheet.id, columns: sheet.columns }
     }
   }
 
