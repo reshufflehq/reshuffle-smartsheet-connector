@@ -1,12 +1,45 @@
-# SmartSheet Connector
+# reshuffle-smartsheet-connector
+
+[Code](https://github.com/reshufflehq/reshuffle-smartsheet-connector) |
+[npm](https://www.npmjs.com/package/reshuffle-smartsheet-connector) |
+[Code sample](https://github.com/reshufflehq/reshuffle-smartsheet-connector/examples)
+
+`npm install reshuffle-smartsheet-connector`
+
+### Reshuffle SmartSheet Connector
 
 This package contains a [Resshufle](https://github.com/reshufflehq/reshuffle)
 connector to access to online spreadsheets at
 [smartsheet.com](https://smartsheet.com).
 
-All actions throw in case of an error.
+The following example prints sheet data as CSV:
 
-_Actions_:
+```js
+const { Reshuffle } = require('reshuffle')
+const { SmartsheetConnector } = require('reshuffle-smartsheet-connector')
+
+;(async () => {
+  const app = new Reshuffle()
+  const smartsheet = new SmartsheetConnector(app, {
+    apiKey: process.env.SMARTSHEET_API_KEY,
+  })
+
+  const list = await smartsheet.listSheets()
+  if (list.length === 0) {
+    console.log('No sheets')
+    return
+  }
+
+  const sis = await smartsheet.getSimpleSheetById(list[0].id)
+  console.log(sis.toCSV())
+})()
+```
+
+#### Table of Contents
+
+[Configuration](#configuration) Configuration options
+
+_Connector actions_:
 
 [addRows](#addRows) Add rows to a sheet
 
@@ -44,7 +77,7 @@ _SDK_:
 
 [sdk](#sdk) Get direct SDK access
 
-## Construction
+##### <a name="configuration"></a>Configuration options
 
 ```js
 const app = new Reshuffle()
@@ -53,9 +86,9 @@ const smartsheetConnector = new SmaetsheetConnector(app, {
 })
 ```
 
-## Action Details
+#### Connector actions
 
-### <a name="addRows"></a>Add Rows action
+##### <a name="addRows"></a>Add Rows action
 
 _Definition:_
 
@@ -103,7 +136,7 @@ await smartsheetConnector.addRows(4583173393803140, [
 
 Add rows to a sheet.
 
-### <a name="addRowToBottom"></a>Add Row To Bottom action
+##### <a name="addRowToBottom"></a>Add Row To Bottom action
 
 _Definition:_
 
@@ -125,7 +158,7 @@ await smartsheetConnector.addRowToBottom(4583173393803140, {
 
 Add one row after the last row of a sheet.
 
-### <a name="addRowToTop"></a>Add Row To Top action
+##### <a name="addRowToTop"></a>Add Row To Top action
 
 _Definition:_
 
@@ -147,7 +180,7 @@ await smartsheetConnector.addRowToTop(4583173393803140, {
 
 Add one row before the first row of a sheet.
 
-### <a name="createSheet"></a>Create Sheet action
+##### <a name="createSheet"></a>Create Sheet action
 
 _Definition:_
 
@@ -168,7 +201,7 @@ await smartsheetConnector.createSheet('My Sheet', [
 ```
 Create a new sheet.
 
-### <a name="deleteRow"></a>Delete Row action
+##### <a name="deleteRow"></a>Delete Row action
 
 _Definition:_
 
@@ -186,7 +219,7 @@ await smartsheetConnector.deleteRow(4583173393803140, 1234567890123456)
 ```
 Delete a single row from the specified sheet.
 
-### <a name="findOrCreateSheet"></a>Find Or Create Sheet action
+##### <a name="findOrCreateSheet"></a>Find Or Create Sheet action
 
 _Definition:_
 
@@ -210,7 +243,7 @@ This action offers the same interface as [createSheet](#createSheet) above,
 but checks first whether a sheet with the specified `name` exists. If so,
 that sheet is returned. Otherwise, a new one is created.
 
-### <a name="getImage"></a>Get Image action
+##### <a name="getImage"></a>Get Image action
 
 _Definition:_
 
@@ -245,7 +278,7 @@ original file name) and a download URL. The URL is valid for half an hour.
 Use the optional `width` and `height` arguments to get a link to a resized
 image.
 
-### <a name="getSheetById"></a>Get Sheet By ID action
+##### <a name="getSheetById"></a>Get Sheet By ID action
 
 _Definition:_
 
@@ -265,7 +298,7 @@ Get full
 [sheet data](https://smartsheet-platform.github.io/api-docs/?javascript#get-sheet)
 for the sheet with the specified `id`.
 
-### <a name="getSheetIdByName"></a>Get Sheet ID By Name action
+##### <a name="getSheetIdByName"></a>Get Sheet ID By Name action
 
 _Definition:_
 
@@ -284,7 +317,7 @@ const sheetId = await smartsheetConnector.getSheetIdByName('My Sheet')
 Get a sheet ID number for the sheet with the specified name. If a sheet
 with that name is not found then an Error is thrown.
 
-### <a name="getSheetByName"></a>Get Sheet By Name action
+##### <a name="getSheetByName"></a>Get Sheet By Name action
 
 _Definition:_
 
@@ -305,7 +338,7 @@ Get full
 for the sheet with the specified `name`. If a sheet with that name is not
 found then an Error is thrown.
 
-### <a name="getSimpleSheetById"></a>Get Simple Sheet By ID action
+##### <a name="getSimpleSheetById"></a>Get Simple Sheet By ID action
 
 _Definition:_
 
@@ -353,7 +386,7 @@ getSheetId(): number // Get the sheet ID
 getUpdates(): object // Get the updates for using with the update action
 ```
 
-### <a name="getSimpleSheetByName"></a>Get Simple Sheet By Name action
+##### <a name="getSimpleSheetByName"></a>Get Simple Sheet By Name action
 
 _Definition:_
 
@@ -366,7 +399,7 @@ _Definition:_
 Get a `SimpleSheet` object representing the sheet the the specified
 `name`. See [getSimpleSheetById](#getSimpleSheetById) for details.
 
-### <a name="getRow"></a>Get Row action
+##### <a name="getRow"></a>Get Row action
 
 _Definition:_
 
@@ -389,7 +422,7 @@ const row = await smartsheetConnector.getRow(
 Get information about the specified row in the specified sheet. Row
 information is detailed [here](https://smartsheet-platform.github.io/api-docs/#get-row).
 
-### <a name="listRows"></a>List Rows action
+##### <a name="listRows"></a>List Rows action
 
 _Definition:_
 
@@ -407,7 +440,7 @@ const rowIds = await smartsheetConnector.listRows(4583173393803140)
 
 Get a list of row IDs in the specified sheet.
 
-### <a name="listSheets"></a>List Sheets action
+##### <a name="listSheets"></a>List Sheets action
 
 _Definition:_
 
@@ -431,7 +464,7 @@ the following information is returned:
 * *createdAt* - Cretion time stamp
 * *modifiedAt* - Modification time stamp
 
-### <a name="update"></a>Update action
+##### <a name="update"></a>Update action
 
 _Definition:_
 
@@ -466,9 +499,9 @@ Update the data in a sheet. The update object uses the format defined
 . You can use the [Simple Sheet objet](#getSimpleSheetByName) to create
 an updater object that will construct the rows array.
 
-## SDK Details
+#### SDK
 
-### <a name="sdk"></a>SDK action
+##### <a name="sdk"></a>SDK action
 
 _Definition:_
 
