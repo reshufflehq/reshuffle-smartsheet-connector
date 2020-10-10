@@ -227,7 +227,7 @@ _Definition:_
 (
   sheetId: number | string,
   rowId: number | string,
-) => { created: boolean, sheetId: number, columns: object[] }
+) => object
 ```
 
 _Usage:_
@@ -242,6 +242,17 @@ await smartsheetConnector.findOrCreateSheet('My Sheet', [
 This action offers the same interface as [createSheet](#createSheet) above,
 but checks first whether a sheet with the specified `name` exists. If so,
 that sheet is returned. Otherwise, a new one is created.
+
+The action returns and object with the following fields:
+
+```ts
+  accessLevel: string
+  columns: object[]
+  created: boolean
+  name: string
+  permalink: string
+  sheetId: number
+```
 
 ##### <a name="getImage"></a>Get Image action
 

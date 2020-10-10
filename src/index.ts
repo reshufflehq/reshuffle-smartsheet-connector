@@ -87,12 +87,19 @@ export class SmartsheetConnector extends BaseConnector {
   }
 
   public async findOrCreateSheet(name: string, columns: any[]) {
+    const common = (sheet: any) => ({
+      accessLevel: sheet.accessLevel,
+      columns: sheet.columns,
+      name: sheet.name,
+      permalink: sheet.permalink,
+      sheetId: sheet.id,
+    })
     try {
       const sheet = await this.getSheetByName(name)
-      return { created: false, sheetId: sheet.id, columns: sheet.columns }
+      return { created: false, ...common(sheet) }
     } catch {
       const sheet = await this.createSheet(name, columns)
-      return { created: true, sheetId: sheet.id, columns: sheet.columns }
+      return { created: true, ...common(sheet) }
     }
   }
 
