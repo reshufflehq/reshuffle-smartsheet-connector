@@ -39,6 +39,10 @@ const { SmartsheetConnector } = require('reshuffle-smartsheet-connector')
 
 [Configuration](#configuration) Configuration options
 
+_Connector events_:
+
+[sheetChanged](#sheetChanged) Sheet changed
+
 _Connector actions_:
 
 [addRows](#addRows) Add rows to a sheet
@@ -83,8 +87,29 @@ _SDK_:
 const app = new Reshuffle()
 const smartsheetConnector = new SmaetsheetConnector(app, {
   apiKey: process.env.SMARTSHEET_API_KEY,
+  baseURL: process.env.RESHUFFLE_RUNTIME_BASE_URL, // optional but required
+                                                   // for events
 })
 ```
+
+#### Connector events
+
+##### <a name="sheetChanged"></a>Sheet Changed event
+
+_Example:_
+
+```js
+async (event) => {
+  console.log('Smartsheet event:', event)
+})
+```
+
+This event is fired when a Smartsheet web-hook is trigerred. Triggers include
+sheet update, row update, cell update and more.
+
+See
+[event.js](https://github.com/reshufflehq/reshuffle-smartsheet-connector/examples/events.js)
+as an example for defining and handling sheet events.
 
 #### Connector actions
 

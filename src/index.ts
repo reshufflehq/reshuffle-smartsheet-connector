@@ -1,21 +1,47 @@
 import smartsheet from 'smartsheet'
-import { BaseConnector, Reshuffle } from 'reshuffle-base-connector'
+import { Request, Response, NextFunction } from 'express'
 import { SimpleSheet } from './SimpleSheet'
+import {
+  CoreConnector,
+  CoreEventHandler,
+  Options,
+  Reshuffle,
+} from './CoreConnector'
 
-type Options = Record<string, any>
+type SheetIdType = number | string
 
-export class SmartsheetConnector extends BaseConnector {
+interface EventOptions {
+  sheetId: SheetIdType
+}
+
+const CALLBACK_PATH = '/reshuffle-smartsheet-connector'
+const URLRE = /^https?:\/\/[a-zA-Z0-9_\-\.]+(\/[a-zA-Z0-9_\-\.]+)*\/?$/
+
+export class SmartsheetConnector extends CoreConnector {
+  private apiKey: string
   private client: any
   private opts: any
+  private baseURL?: string
+  private newWebhooks: Record<string, boolean> = {}
+  private liveWebhooks: Record<string, boolean> = {}
 
-  constructor(app: Reshuffle, options: Options = {}, id?: string) {
+  constructor(app: Reshuffle, options: Options, id?: string) {
     super(app, options, id)
-    const accessToken = options.apiKey
-    if (!/^[a-z0-9]{26}$/.test(accessToken)) {
-      throw new Error(`Invalid API Key: ${accessToken}`)
+
+    this.apiKey = options.apiKey || ''
+    if (!/^[a-z0-9]{26}$/.test(this.apiKey)) {
+      throw new Error(`Invalid API Key: ${this.apiKey}`)
     }
-    this.client = smartsheet.createClient({ accessToken })
+    this.client = smartsheet.createClient({ accessToken: this.apiKey })
     this.opts = { queryParameters: { includeAll: true } }
+
+    if (options.baseURL !== undefined && !URLRE.test(options.baseURL)) {
+      throw new Error(`Invalid base URL: ${options.baseURL}`)
+    }
+    if (options.baseURL) {
+      this.baseURL = options.baseURL
+      app.registerHTTPDelegate(CALLBACK_PATH, this)
+    }
   }
 
   private createSimpleSheet(sheet: any) {
@@ -36,9 +62,92 @@ export class SmartsheetConnector extends BaseConnector {
     return new SimpleSheet(sheet.id, sheet.name, columns, rows)
   }
 
+  // Events /////////////////////////////////////////////////////////
+
+  public on(
+    options: EventOptions,
+    handler: CoreEventHandler,
+    eventId?: string,
+  ) {
+    validateId(options.sheetId)
+    if (!this.baseURL) {
+      throw new Error('Unable to setup event: baseURL not set')
+    }
+    const sid = parseInt(options.sheetId as string, 10)
+    this.setupEvent(sid).catch(console.error)
+    const eid = eventId || { apiKey: this.apiKey, sheetId: sid }
+    return this.eventManager.addEvent(options, handler, eid)
+  }
+
+  private async setupEvent(sheetId: number) {
+    const list = await this.client.webhooks.listWebhooks(this.opts)
+    let wh = list.data.find((w: any) => w.scopeObjectId === sheetId)
+    if (!wh) {
+      wh = await this.createWebhook(sheetId)
+    }
+    if (wh.status === 'NEW_NOT_VERIFIED') {
+      this.newWebhooks[wh.id] = true
+      wh = await this.updateWebhook(wh.id, true)
+      delete this.newWebhooks[wh.id]
+    }
+    if (wh.status !== 'ENABLED') {
+      await this.client.webhooks.deleteWebhook({ webhookId: wh.id })
+      throw new Error(`Unable to enable webhook for sheet: ${sheetId}`)
+    }
+    this.liveWebhooks[wh.id] = true
+  }
+
+  private async createWebhook(sheetId: SheetIdType) {
+    const res = await this.client.webhooks.createWebhook({
+      body: {
+        name: `reshuffle-${sheetId}`,
+        callbackUrl: `${this.baseURL!}${CALLBACK_PATH}`,
+        scope: 'sheet',
+        scopeObjectId: sheetId,
+        events: ['*.*'],
+        version: 1,
+      },
+      ...this.opts,
+    })
+    if (res.resultCode !== 0) {
+      throw new Error(`Unable to create webhook for sheet: ${sheetId}: ${
+        res.resultCode} ${res.message}`)
+    }
+    return res.result
+  }
+
+  private async updateWebhook(webhookId: string, enabled: boolean) {
+    const res = await this.client.webhooks.updateWebhook({
+      webhookId,
+      body: { enabled },
+    })
+    if (res.resultCode !== 0) {
+      throw new Error(`Unable to update webhook: ${webhookId}: ${
+        res.resultCode} ${res.message}`)
+    }
+    return res.result
+  }
+
+  public async handle(req: Request, res: Response, next: NextFunction) {
+    if (req.method === 'POST' && req.path === CALLBACK_PATH) {
+      const webhookId = String(req.body.webhookId)
+      if (this.newWebhooks[webhookId] && req.body.challenge) {
+        res.json({ webhookId, smartsheetHookResponse: req.body.challenge })
+      } else if (this.started && this.liveWebhooks[webhookId]) {
+        this.eventManager.fire(
+          (ec) => ec.options.sheetId === req.body.scopeObjectId,
+          req.body.events,
+        ).catch(console.error)
+        res.send('')
+      }
+    }
+    next()
+    return true
+  }
+
   // Actions ////////////////////////////////////////////////////////
 
-  public async addRows(sheetId: any, rows: any[]) {
+  public async addRows(sheetId: SheetIdType, rows: any[]) {
     validateId(sheetId)
     const res = await this.client.sheets.addRows({
       sheetId,
@@ -51,11 +160,11 @@ export class SmartsheetConnector extends BaseConnector {
     }
   }
 
-  public async addRowToBottom(sheetId: any, cells: any[]) {
+  public async addRowToBottom(sheetId: SheetIdType, cells: any[]) {
     await this.addRows(sheetId, [{ toBottom: true, cells }])
   }
 
-  public async addRowToTop(sheetId: any, cells: any[]) {
+  public async addRowToTop(sheetId: SheetIdType, cells: any[]) {
     await this.addRows(sheetId, [{ toTop: true, cells }])
   }
 
@@ -72,7 +181,7 @@ export class SmartsheetConnector extends BaseConnector {
     return res.result
   }
 
-  public async deleteRow(sheetId: any, rowId: any) {
+  public async deleteRow(sheetId: SheetIdType, rowId: any) {
     validateId(sheetId)
     validateId(rowId)
     const res = await this.client.sheets.deleteRow({
@@ -103,7 +212,7 @@ export class SmartsheetConnector extends BaseConnector {
     }
   }
 
-  public async getSheetById(sheetId: any) {
+  public async getSheetById(sheetId: SheetIdType) {
     validateId(sheetId)
     const sheet = await this.client.sheets.getSheet(
       { id: sheetId, ...this.opts }
@@ -128,7 +237,7 @@ export class SmartsheetConnector extends BaseConnector {
   }
 
   public async getImage(
-    sheetId: any,
+    sheetId: SheetIdType,
     rowId: any,
     columnIdOrIndex: any,
     width?: number,
@@ -172,7 +281,7 @@ export class SmartsheetConnector extends BaseConnector {
     }
   }
 
-  public async getSimpleSheetById(sheetId: any) {
+  public async getSimpleSheetById(sheetId: SheetIdType) {
     validateId(sheetId)
     const sheet = await this.getSheetById(sheetId)
     return this.createSimpleSheet(sheet)
@@ -184,13 +293,13 @@ export class SmartsheetConnector extends BaseConnector {
     return this.createSimpleSheet(sheet)
   }
 
-  public async getRow(sheetId: any, rowId: any) {
+  public async getRow(sheetId: SheetIdType, rowId: any) {
     validateId(sheetId)
     validateId(rowId)
     return this.client.sheets.getRow({ sheetId, rowId, ...this.opts })
   }
 
-  public async listRows(sheetId: any) {
+  public async listRows(sheetId: SheetIdType) {
     const sheet = await this.getSheetById(sheetId)
     return sheet.rows.map((row: any) => row.id)
   }
@@ -200,7 +309,7 @@ export class SmartsheetConnector extends BaseConnector {
     return list.data
   }
 
-  public async update(sheetId: any, rows: any[]) {
+  public async update(sheetId: SheetIdType, rows: any[]) {
     validateId(sheetId)
     if (!Array.isArray(rows)) {
       throw new Error(`Invalid rows: ${rows}`)
@@ -219,7 +328,7 @@ export class SmartsheetConnector extends BaseConnector {
   }
 }
 
-function validateId(id: any) {
+function validateId(id: SheetIdType) {
   if (typeof id === 'number' && 0 < id) {
     return
   }
