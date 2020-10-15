@@ -12,7 +12,8 @@ This package contains a [Resshufle](https://github.com/reshufflehq/reshuffle)
 connector to access to online spreadsheets at
 [smartsheet.com](https://smartsheet.com).
 
-The following example prints sheet data as CSV:
+The following example tracks changed to an online spreadtsheet. Chages are
+reported at the sheet level, row level and cell level:
 
 ```js
 const { Reshuffle } = require('reshuffle')
@@ -20,18 +21,32 @@ const { SmartsheetConnector } = require('reshuffle-smartsheet-connector')
 
 ;(async () => {
   const app = new Reshuffle()
-  const smartsheet = new SmartsheetConnector(app, {
+  const ssh = new SmartsheetConnector(app, {
     apiKey: process.env.SMARTSHEET_API_KEY,
+    baseURL: process.env.RESHUFFLE_RUNTIME_BASE_URL,
   })
 
-  const list = await smartsheet.listSheets()
-  if (list.length === 0) {
-    console.log('No sheets')
-    return
+  const sheet = await ssh.findOrCreateSheet('Reshuffle Events Example', [
+    { title: 'Name', type: 'TEXT_NUMBER', primary: true },
+    { title: 'Quest', type: 'TEXT_NUMBER' },
+    { title: 'Color', type: 'TEXT_NUMBER' },
+  ])
+
+  if (sheet.created) {
+    await ssh.addRowToBottom(sheet.sheetId, [
+      { columnId: sheet.columns[0].id, value: 'Arthur' },
+      { columnId: sheet.columns[1].id, value: 'Find the Holy Grail' },
+      { columnId: sheet.columns[2].id, value: 'Blue' },
+    ])
   }
 
-  const sis = await smartsheet.getSimpleSheetById(list[0].id)
-  console.log(sis.toCSV())
+  console.log(`Please visit ${sheet.permalink} and make some changes`)
+
+  ssh.on({ sheetId: sheet.sheetId }, async (event) => {
+    console.log('Smartsheet event:', event)
+  })
+
+  app.start(8000)
 })()
 ```
 
