@@ -225,7 +225,7 @@ export class SmartsheetConnector extends CoreConnector {
     const list = await this.client.sheets.listSheets(this.opts)
     const desc = list.data.find((d: any) => d.name === name)
     if (!desc) {
-      throw new Error(`SmartSheet: Sheet not found: ${name}`)
+      throw new Error(`Smartsheet: Sheet not found: ${name}`)
     }
     return desc.id
   }

@@ -6,7 +6,7 @@
 
 `npm install reshuffle-smartsheet-connector`
 
-### Reshuffle SmartSheet Connector
+### Reshuffle Smartsheet Connector
 
 This package contains a [Resshufle](https://github.com/reshufflehq/reshuffle)
 connector to access to online spreadsheets at
