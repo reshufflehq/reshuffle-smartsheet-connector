@@ -12,7 +12,7 @@ This package contains a [Resshufle](https://github.com/reshufflehq/reshuffle)
 connector to access to online spreadsheets at
 [smartsheet.com](https://smartsheet.com).
 
-The following example tracks changed to an online spreadtsheet. Chages are
+The following example tracks changes to an online spreadtsheet. Chages are
 reported at the sheet level, row level and cell level:
 
 ```js
