@@ -1,7 +1,7 @@
 {
   "name": "reshuffle-smartsheet-connector",
-  "version": "0.0.1",
-  "description": "Reshuffle connectors for Smartsheet",
+  "version": "0.0.2",
+  "description": "Reshuffle connector for Smartsheet",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
