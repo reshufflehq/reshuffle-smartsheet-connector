@@ -1,5 +1,5 @@
 import smartsheet from 'smartsheet'
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response } from 'express'
 import { SimpleSheet } from './SimpleSheet'
 import {
   CoreConnector,
@@ -128,7 +128,7 @@ export class SmartsheetConnector extends CoreConnector {
     return res.result
   }
 
-  public async handle(req: Request, res: Response, next: NextFunction) {
+  public async handle(req: Request, res: Response) {
     if (req.method === 'POST' && req.path === CALLBACK_PATH) {
       const webhookId = String(req.body.webhookId)
       if (this.newWebhooks[webhookId] && req.body.challenge) {
@@ -140,9 +140,10 @@ export class SmartsheetConnector extends CoreConnector {
         ).catch(console.error)
         res.send('')
       }
+      return true
+    } else {
+      return false
     }
-    next()
-    return true
   }
 
   // Actions ////////////////////////////////////////////////////////
