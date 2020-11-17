@@ -50,7 +50,7 @@ async function main() {
 }
 
 app.start()
-main()
+main().catch(console.error)
 ```
 
 ### Table of Contents
