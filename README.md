@@ -8,23 +8,29 @@
 
 ### Reshuffle Smartsheet Connector
 
-This package contains a [Resshufle](https://github.com/reshufflehq/reshuffle)
+This package contains a [Reshuffle](https://github.com/reshufflehq/reshuffle)
 connector to access to online spreadsheets at
 [smartsheet.com](https://smartsheet.com).
 
-The following example tracks changes to an online spreadtsheet. Chages are
+The following example tracks changes to an online spreadtsheet. Changes are
 reported at the sheet level, row level and cell level:
 
 ```js
 const { Reshuffle } = require('reshuffle')
 const { SmartsheetConnector } = require('reshuffle-smartsheet-connector')
 
-;(async () => {
-  const app = new Reshuffle()
-  const ssh = new SmartsheetConnector(app, {
-    apiKey: process.env.SMARTSHEET_API_KEY,
-    baseURL: process.env.RESHUFFLE_RUNTIME_BASE_URL,
-  })
+const app = new Reshuffle()
+
+const ssh = new SmartsheetConnector(app, {
+  apiKey: process.env.SMARTSHEET_API_KEY,
+  baseURL: process.env.RESHUFFLE_RUNTIME_BASE_URL,
+})
+
+ssh.on({ sheetId: sheet.sheetId }, async (event) => {
+  console.log('Smartsheet event:', event)
+})
+
+async function main() {
 
   const sheet = await ssh.findOrCreateSheet('Reshuffle Events Example', [
     { title: 'Name', type: 'TEXT_NUMBER', primary: true },
@@ -41,24 +47,21 @@ const { SmartsheetConnector } = require('reshuffle-smartsheet-connector')
   }
 
   console.log(`Please visit ${sheet.permalink} and make some changes`)
+}
 
-  ssh.on({ sheetId: sheet.sheetId }, async (event) => {
-    console.log('Smartsheet event:', event)
-  })
-
-  app.start(8000)
-})()
+app.start()
+main()
 ```
 
-#### Table of Contents
+### Table of Contents
 
 [Configuration](#configuration) Configuration options
 
-_Connector events_:
+#### Connector events
 
 [sheetChanged](#sheetChanged) Sheet changed
 
-_Connector actions_:
+#### Connector actions
 
 [addRows](#addRows) Add rows to a sheet
 
@@ -92,11 +95,9 @@ _Connector actions_:
 
 [update](#update) Update a sheet
 
-_SDK_:
-
 [sdk](#sdk) Get direct SDK access
 
-##### <a name="configuration"></a>Configuration options
+### <a name="configuration"></a>Configuration options
 
 ```js
 const app = new Reshuffle()
@@ -107,9 +108,9 @@ const smartsheetConnector = new SmaetsheetConnector(app, {
 })
 ```
 
-#### Connector events
+### Connector events
 
-##### <a name="sheetChanged"></a>Sheet Changed event
+#### <a name="sheetChanged"></a> Sheet Changed event
 
 _Example:_
 
@@ -119,16 +120,18 @@ async (event) => {
 })
 ```
 
-This event is fired when a Smartsheet web-hook is trigerred. Triggers include
+This event is fired when a Smartsheet webhook is triggered. Triggers include
 sheet update, row update, cell update and more.
 
 See
 [event.js](https://github.com/reshufflehq/reshuffle-smartsheet-connector/examples/events.js)
-as an example for defining and handling sheet events.
+for an example of defining and handling sheet events.
 
-#### Connector actions
+### Connector actions
 
-##### <a name="addRows"></a>Add Rows action
+#### <a name="addRows"></a> Add Rows action
+
+Add rows to a sheet.
 
 _Definition:_
 
@@ -174,9 +177,9 @@ await smartsheetConnector.addRows(4583173393803140, [
 ])
 ```
 
-Add rows to a sheet.
+#### <a name="addRowToBottom"></a> Add Row To Bottom action
 
-##### <a name="addRowToBottom"></a>Add Row To Bottom action
+Add one row after the last row of a sheet.
 
 _Definition:_
 
@@ -196,9 +199,9 @@ await smartsheetConnector.addRowToBottom(4583173393803140, {
 })
 ```
 
-Add one row after the last row of a sheet.
+#### <a name="addRowToTop"></a> Add Row To Top action
 
-##### <a name="addRowToTop"></a>Add Row To Top action
+Add one row before the first row of a sheet.
 
 _Definition:_
 
@@ -218,9 +221,9 @@ await smartsheetConnector.addRowToTop(4583173393803140, {
 })
 ```
 
-Add one row before the first row of a sheet.
+#### <a name="createSheet"></a> Create Sheet action
 
-##### <a name="createSheet"></a>Create Sheet action
+Create a new sheet.
 
 _Definition:_
 
@@ -239,9 +242,10 @@ await smartsheetConnector.createSheet('My Sheet', [
   { title: 'City', type: 'TEXT_NUMBER' },
 ])
 ```
-Create a new sheet.
 
-##### <a name="deleteRow"></a>Delete Row action
+#### <a name="deleteRow"></a> Delete Row action
+
+Delete a single row from the specified sheet.
 
 _Definition:_
 
@@ -257,9 +261,23 @@ _Usage:_
 ```js
 await smartsheetConnector.deleteRow(4583173393803140, 1234567890123456)
 ```
-Delete a single row from the specified sheet.
 
-##### <a name="findOrCreateSheet"></a>Find Or Create Sheet action
+#### <a name="findOrCreateSheet"></a> Find Or Create Sheet action
+
+This action offers the same interface as [createSheet](#createSheet) above,
+but checks first whether a sheet with the specified `name` exists. If so,
+that sheet is returned. Otherwise, a new one is created.
+
+The action returns an object with the following fields:
+
+```ts
+  accessLevel: string
+  columns: object[]
+  created: boolean
+  name: string
+  permalink: string
+  sheetId: number
+```
 
 _Definition:_
 
@@ -279,22 +297,17 @@ await smartsheetConnector.findOrCreateSheet('My Sheet', [
 ])
 ```
 
-This action offers the same interface as [createSheet](#createSheet) above,
-but checks first whether a sheet with the specified `name` exists. If so,
-that sheet is returned. Otherwise, a new one is created.
+#### <a name="getImage"></a> Get Image action
 
-The action returns and object with the following fields:
+Get an image stored in a sheet cell. `sheetId` and `rowId` specify the
+specific row to query. `columnIdOrIndex` is treated as an index if it is
+a number smaller than 1024, otherwise it is treated as a column id.
 
-```ts
-  accessLevel: string
-  columns: object[]
-  created: boolean
-  name: string
-  permalink: string
-  sheetId: number
-```
+The returned image data includes a unique ID, the alternative text (usually the
+original file name) and a download URL. The URL is valid for half an hour.
 
-##### <a name="getImage"></a>Get Image action
+Use the optional `width` and `height` arguments to get a link to a resized
+image.
 
 _Definition:_
 
@@ -303,8 +316,8 @@ _Definition:_
   sheetId: number | string,
   rowId: number | string,
   columnIdOrIndex: number | string,
-  width?: number, // optional
-  height?: number, // optional
+  width?: number,
+  height?: number,
 ) => object
 ```
 
@@ -319,17 +332,10 @@ const img = await smartsheetConnector.getImage(
 console.log(img.id, img.text, img.url)
 ```
 
-Get an image stored in a sheet cell. `sheetId` and `rowId` specify the
-specific row to query. `columnIdOrIndex` is treated as an index if it is
-a number smaller than 1024, otherwise it is treated as a column id.
+#### <a name="getSheetById"></a> Get Sheet By ID action
 
-The returned image include a unique ID, the alternative text (uaully the
-original file name) and a download URL. The URL is valid for half an hour.
-
-Use the optional `width` and `height` arguments to get a link to a resized
-image.
-
-##### <a name="getSheetById"></a>Get Sheet By ID action
+Get full [sheet data](https://smartsheet-platform.github.io/api-docs/?javascript#get-sheet)
+for the sheet with the specified `id`.
 
 _Definition:_
 
@@ -345,11 +351,10 @@ _Usage:_
 const sheetData = await smartsheetConnector.getSheetById(4583173393803140)
 ```
 
-Get full
-[sheet data](https://smartsheet-platform.github.io/api-docs/?javascript#get-sheet)
-for the sheet with the specified `id`.
+#### <a name="getSheetIdByName"></a> Get Sheet ID By Name action
 
-##### <a name="getSheetIdByName"></a>Get Sheet ID By Name action
+Lookup the sheet ID for the sheet with the specified name. If a sheet
+with that name is not found then an Error is thrown.
 
 _Definition:_
 
@@ -365,10 +370,11 @@ _Usage:_
 const sheetId = await smartsheetConnector.getSheetIdByName('My Sheet')
 ```
 
-Get a sheet ID number for the sheet with the specified name. If a sheet
-with that name is not found then an Error is thrown.
+#### <a name="getSheetByName"></a> Get Sheet By Name action
 
-##### <a name="getSheetByName"></a>Get Sheet By Name action
+Get full [sheet data](https://smartsheet-platform.github.io/api-docs/?javascript#get-sheet)
+for the sheet with the specified `name`. If a sheet with that name is not
+found then an Error is thrown.
 
 _Definition:_
 
@@ -384,31 +390,9 @@ _Usage:_
 const sheetData = await smartsheetConnector.getSheetByName('My Sheet')
 ```
 
-Get full
-[sheet data](https://smartsheet-platform.github.io/api-docs/?javascript#get-sheet)
-for the sheet with the specified `name`. If a sheet with that name is not
-found then an Error is thrown.
+#### <a name="getSimpleSheetById"></a>Get Simple Sheet By ID action
 
-##### <a name="getSimpleSheetById"></a>Get Simple Sheet By ID action
-
-_Definition:_
-
-```ts
-(
-  sheetId: number | string,
-) => object
-```
-
-_Usage:_
-
-```js
-const sheet = await smartsheetConnector.getSimpleSheetById(4583173393803140)
-const updater = sheet.getUpdater()
-updater.addUpdate('My Column', 000000000000000, 'New Value')
-await smartsheetConnector.update(updater.getSheetId(), updater.getUpdates())
-```
-
-Get a `SimpleSheet` object to representing the sheet with the specified
+Get a `SimpleSheet` object representing the sheet with the specified
 `id`. This object provides the following methods:
 
 ```ts
@@ -437,7 +421,27 @@ getSheetId(): number // Get the sheet ID
 getUpdates(): object // Get the updates for using with the update action
 ```
 
-##### <a name="getSimpleSheetByName"></a>Get Simple Sheet By Name action
+_Definition:_
+
+```ts
+(
+  sheetId: number | string,
+) => object
+```
+
+_Usage:_
+
+```js
+const sheet = await smartsheetConnector.getSimpleSheetById(4583173393803140)
+const updater = sheet.getUpdater()
+updater.addUpdate('My Column', 000000000000000, 'New Value')
+await smartsheetConnector.update(updater.getSheetId(), updater.getUpdates())
+```
+
+#### <a name="getSimpleSheetByName"></a> Get Simple Sheet By Name action
+
+Get a `SimpleSheet` object representing the sheet with the specified
+`name`. See [getSimpleSheetById](#getSimpleSheetById) for details.
 
 _Definition:_
 
@@ -447,10 +451,10 @@ _Definition:_
 ) => object
 ```
 
-Get a `SimpleSheet` object representing the sheet the the specified
-`name`. See [getSimpleSheetById](#getSimpleSheetById) for details.
+#### <a name="getRow"></a> Get Row action
 
-##### <a name="getRow"></a>Get Row action
+Get information about the specified row in the specified sheet. Row
+information is detailed [here](https://smartsheet-platform.github.io/api-docs/#get-row).
 
 _Definition:_
 
@@ -470,10 +474,9 @@ const row = await smartsheetConnector.getRow(
 )
 ```
 
-Get information about the specified row in the specified sheet. Row
-information is detailed [here](https://smartsheet-platform.github.io/api-docs/#get-row).
+#### <a name="listRows"></a> List Rows action
 
-##### <a name="listRows"></a>List Rows action
+Get a list of row Ids in the specified sheet.
 
 _Definition:_
 
@@ -489,9 +492,17 @@ _Usage:_
 const rowIds = await smartsheetConnector.listRows(4583173393803140)
 ```
 
-Get a list of row IDs in the specified sheet.
+#### <a name="listSheets"></a> List Sheets action
 
-##### <a name="listSheets"></a>List Sheets action
+Get a list of all sheets in the connected Smartsheet account. For each sheet,
+the following information is returned:
+
+* *id* - Sheet ID
+* *name* - Sheet name
+* *accessLevel* - Usually 'OWNER'
+* *permalink* - Link to the sheet's online page
+* *createdAt* - Creation time stamp
+* *modifiedAt* - Modification time stamp
 
 _Definition:_
 
@@ -505,17 +516,12 @@ _Usage:_
 const sheets = await smartsheetConnector.listSheets()
 ```
 
-Get a list of all sheets in the connected Smartsheet account. For each sheet,
-the following information is returned:
+#### <a name="update"></a> Update action
 
-* *id* - Sheet ID
-* *name* - Sheet name
-* *accessLevel* - Usually 'OWNER'
-* *permalink* - Link to sheet online page
-* *createdAt* - Cretion time stamp
-* *modifiedAt* - Modification time stamp
-
-##### <a name="update"></a>Update action
+Update the data in a sheet. The update object uses the format defined
+[here](https://smartsheet-platform.github.io/api-docs/?javascript#update-rows). 
+You can use the [Simple Sheet object](#getSimpleSheetByName) to create
+an updater object that will construct the rows array.
 
 _Definition:_
 
@@ -545,14 +551,9 @@ await smartsheetConnector.update(
 )
 ```
 
-Update the data in a sheet. The update object uses the format defined
-[here](https://smartsheet-platform.github.io/api-docs/?javascript#update-rows)
-. You can use the [Simple Sheet objet](#getSimpleSheetByName) to create
-an updater object that will construct the rows array.
+#### <a name="sdk"></a> sdk action
 
-#### SDK
-
-##### <a name="sdk"></a>SDK action
+Get the underlying SDK object.
 
 _Definition:_
 
@@ -565,5 +566,3 @@ _Usage:_
 ```js
 const client = await smartsheetConnector.sdk()
 ```
-
-Get the underlying SDK object.
