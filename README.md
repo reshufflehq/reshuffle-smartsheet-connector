@@ -2,13 +2,13 @@
 
 [Code](https://github.com/reshufflehq/reshuffle-smartsheet-connector) |
 [npm](https://www.npmjs.com/package/reshuffle-smartsheet-connector) |
-[Code sample](https://github.com/reshufflehq/reshuffle-smartsheet-connector/examples)
+[Code sample](https://github.com/reshufflehq/reshuffle-smartsheet-connector/tree/master/examples)
 
 `npm install reshuffle-smartsheet-connector`
 
 ### Reshuffle Smartsheet Connector
 
-This package contains a [Reshuffle](https://github.com/reshufflehq/reshuffle)
+This package contains a [Reshuffle](https://reshuffle.com)
 connector to access to online spreadsheets at
 [smartsheet.com](https://smartsheet.com).
 
