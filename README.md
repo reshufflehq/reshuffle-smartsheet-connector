@@ -8,7 +8,7 @@
 
 ### Reshuffle Smartsheet Connector
 
-This package contains a [Reshuffle](https://reshuffle.com)
+This package contains a [Reshuffle](https://github.com/reshufflehq/reshuffle)
 connector to access to online spreadsheets at
 [smartsheet.com](https://smartsheet.com).
 
